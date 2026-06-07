@@ -33,7 +33,11 @@ final class ReminderStore {
     }
 
     func delete(id: Reminder.ID) throws {
-        reminders.removeAll { $0.id == id }
+        guard let index = reminders.firstIndex(where: { $0.id == id }) else {
+            throw ReminderStoreError.reminderNotFound
+        }
+
+        reminders.remove(at: index)
         try persist()
     }
 

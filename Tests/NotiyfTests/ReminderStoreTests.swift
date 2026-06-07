@@ -50,4 +50,14 @@ final class ReminderStoreTests: XCTestCase {
 
         XCTAssertEqual(store.reminders.first?.status, .dismissed)
     }
+
+    func testDeleteMissingReminderThrows() throws {
+        let persistence = InMemoryReminderPersistence()
+        let store = try ReminderStore(persistence: persistence)
+
+        XCTAssertThrowsError(try store.delete(id: UUID())) { error in
+            XCTAssertEqual(error as? ReminderStoreError, .reminderNotFound)
+        }
+        XCTAssertEqual(persistence.savedReminders, [])
+    }
 }
