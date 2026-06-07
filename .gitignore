@@ -1,4 +1,6 @@
 .superpowers/
 .worktrees/
+.codegraph/
+.codex/
 .build/
 dist/
