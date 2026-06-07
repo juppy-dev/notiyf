@@ -1,14 +1,59 @@
 import SwiftUI
 
 struct ReminderListView: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Notiyf")
-                .font(.largeTitle.bold())
+    let controller: AppController
 
-            Text("Reminder management will appear here.")
-                .foregroundStyle(.secondary)
+    private var groupedReminders: [(String, [Reminder])] {
+        [
+            ("Upcoming", controller.store.reminders.filter { $0.status == .scheduled }),
+            ("Snoozed", controller.store.reminders.filter { $0.status == .snoozed }),
+            ("Missed", controller.store.reminders.filter { $0.status == .missed }),
+            ("Dismissed", controller.store.reminders.filter { $0.status == .dismissed })
+        ]
+    }
+
+    var body: some View {
+        NavigationSplitView {
+            List {
+                Section("Quick Add") {
+                    ReminderEditorView { title, dueAt in
+                        controller.createReminder(title: title, dueAt: dueAt)
+                    }
+                }
+
+                ForEach(groupedReminders, id: \.0) { group in
+                    Section(group.0) {
+                        ForEach(group.1) { reminder in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(reminder.title)
+                                    .font(.headline)
+
+                                Text(DateFormatting.reminderDateTime.string(from: reminder.dueAt))
+                                    .foregroundStyle(.secondary)
+                                    .font(.caption)
+                            }
+                            .contextMenu {
+                                Button("Snooze 5 Minutes") {
+                                    controller.snooze(reminder, minutes: 5)
+                                }
+
+                                Button("Dismiss") {
+                                    controller.dismiss(reminder)
+                                }
+
+                                Divider()
+
+                                Button("Delete", role: .destructive) {
+                                    controller.delete(reminder)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .listStyle(.sidebar)
+        } detail: {
+            ContentUnavailableView("Select or create a reminder", systemImage: "bell.badge")
         }
-        .padding(24)
     }
 }

@@ -11,23 +11,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct NotiyfApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @State private var controller = AppController()
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         WindowGroup("Notiyf", id: "reminders") {
-            ReminderListView()
+            ReminderListView(controller: controller)
                 .frame(minWidth: 760, minHeight: 460)
         }
 
         MenuBarExtra("Notiyf", systemImage: "bell.badge") {
-            Button("Manage Reminders") {
+            MenuBarContentView(controller: controller) {
                 NSApp.activate(ignoringOtherApps: true)
-            }
-
-            Divider()
-
-            Button("Quit Notiyf") {
-                NSApp.terminate(nil)
+                openWindow(id: "reminders")
             }
         }
+        .menuBarExtraStyle(.window)
     }
 }
