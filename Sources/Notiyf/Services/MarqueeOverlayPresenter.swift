@@ -27,9 +27,14 @@ final class MarqueeOverlayPresenter {
             }
         )
 
+        let screenFrame = OverlayScreenPlacement.frame(
+            mainFrame: NSScreen.main?.frame,
+            candidateFrames: NSScreen.screens.map(\.frame),
+            pointerLocation: NSEvent.mouseLocation
+        )
+        let frame = NSRect(x: screenFrame.minX, y: screenFrame.maxY - 120, width: screenFrame.width, height: 96)
+
         if window == nil {
-            let screenFrame = NSScreen.main?.frame ?? .zero
-            let frame = NSRect(x: 0, y: screenFrame.height - 120, width: screenFrame.width, height: 96)
             let window = NSWindow(
                 contentRect: frame,
                 styleMask: [.borderless],
@@ -44,6 +49,7 @@ final class MarqueeOverlayPresenter {
             self.window = window
         }
 
+        window?.setFrame(frame, display: true)
         let hostingView = NSHostingView(rootView: overlayView)
         self.hostingView = hostingView
         window?.contentView = hostingView
@@ -53,6 +59,20 @@ final class MarqueeOverlayPresenter {
     func hide() {
         window?.orderOut(nil)
         reminder = nil
+    }
+}
+
+enum OverlayScreenPlacement {
+    static func frame(mainFrame: CGRect?, candidateFrames: [CGRect], pointerLocation: CGPoint) -> CGRect {
+        if let mainFrame, !mainFrame.isEmpty {
+            return mainFrame
+        }
+
+        if let pointerFrame = candidateFrames.first(where: { $0.contains(pointerLocation) }) {
+            return pointerFrame
+        }
+
+        return candidateFrames.first ?? .zero
     }
 }
 

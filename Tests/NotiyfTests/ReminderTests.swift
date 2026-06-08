@@ -33,4 +33,30 @@ final class ReminderTests: XCTestCase {
 
         XCTAssertEqual(ReminderDisplayPhase.phase(for: dueAt, now: now), .overdue)
     }
+
+    func testOverlayScreenPlacementFallsBackToPointerScreenWhenMainScreenIsMissing() {
+        let left = CGRect(x: 0, y: 0, width: 1_440, height: 900)
+        let right = CGRect(x: 1_440, y: 0, width: 1_440, height: 900)
+
+        let result = OverlayScreenPlacement.frame(
+            mainFrame: nil,
+            candidateFrames: [left, right],
+            pointerLocation: CGPoint(x: 2_000, y: 450)
+        )
+
+        XCTAssertEqual(result, right)
+    }
+
+    func testOverlayScreenPlacementFallsBackToFirstScreenWhenPointerIsOutsideAllScreens() {
+        let first = CGRect(x: 0, y: 0, width: 1_440, height: 900)
+        let second = CGRect(x: 1_440, y: 0, width: 1_440, height: 900)
+
+        let result = OverlayScreenPlacement.frame(
+            mainFrame: nil,
+            candidateFrames: [first, second],
+            pointerLocation: CGPoint(x: -50, y: -50)
+        )
+
+        XCTAssertEqual(result, first)
+    }
 }
