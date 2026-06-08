@@ -52,4 +52,15 @@ final class AppController {
     func snooze(_ reminder: Reminder, minutes: Int) {
         try? store.snooze(id: reminder.id, minutes: minutes)
     }
+
+    func triggerTestMarquee() {
+        let reminder = Reminder(
+            title: "Debug marquee test",
+            dueAt: Date().addingTimeInterval(60 * 5),
+            status: .active,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+        overlayPresenter.show(reminder: reminder)
+    }
 }

@@ -35,6 +35,16 @@ struct MenuBarContentView: View {
             }
             .buttonStyle(.bordered)
 
+#if DEBUG
+            Button {
+                controller.triggerTestMarquee()
+            } label: {
+                Label("Trigger Test Marquee", systemImage: "waveform.path.ecg.rectangle")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
+#endif
+
             Button(role: .destructive) {
                 NSApp.terminate(nil)
             } label: {
