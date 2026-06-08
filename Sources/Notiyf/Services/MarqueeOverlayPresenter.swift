@@ -63,22 +63,21 @@ private struct MarqueeOverlayView: View {
 
     @State private var now = Date()
     @State private var showControls = false
-    @State private var textOffset: CGFloat = 900
+    @State private var tickerStart = Date()
+    @State private var hideControlsTask: Task<Void, Never>?
 
     private var phase: ReminderDisplayPhase {
         ReminderDisplayPhase.phase(for: reminder.dueAt, now: now)
     }
 
-    private var message: String {
+    private var tickerMessage: String {
         switch phase {
         case .countdown:
-            let seconds = max(0, Int(reminder.dueAt.timeIntervalSince(now)))
-            return "\(reminder.title) in \(seconds / 60)m \(seconds % 60)s"
+            return "\(reminder.title)  •  starts in \(clockString(for: max(0, Int(reminder.dueAt.timeIntervalSince(now)))))"
         case .dueNow:
-            return "\(reminder.title) is starting now"
+            return "\(reminder.title)  •  starting now"
         case .overdue:
-            let seconds = max(0, Int(now.timeIntervalSince(reminder.dueAt)))
-            return "\(reminder.title) started \(seconds / 60)m ago"
+            return "\(reminder.title)  •  late by \(clockString(for: max(0, Int(now.timeIntervalSince(reminder.dueAt)))))"
         }
     }
 
@@ -86,39 +85,81 @@ private struct MarqueeOverlayView: View {
         phase == .dueNow ? 96 : 72
     }
 
+    private var stripFill: LinearGradient {
+        switch phase {
+        case .countdown:
+            return LinearGradient(colors: [Color.yellow, Color.orange.opacity(0.9)], startPoint: .leading, endPoint: .trailing)
+        case .dueNow:
+            return LinearGradient(colors: [Color.red, Color.pink.opacity(0.85)], startPoint: .leading, endPoint: .trailing)
+        case .overdue:
+            return LinearGradient(colors: [Color.orange, Color.red.opacity(0.85)], startPoint: .leading, endPoint: .trailing)
+        }
+    }
+
+    private var textColor: Color {
+        phase == .countdown ? .black : .white
+    }
+
+    private var labelFont: Font {
+        .system(size: phase == .dueNow ? 34 : 28, weight: .black, design: .rounded)
+    }
+
+    private var labelWidth: CGFloat {
+        let size = phase == .dueNow ? 34.0 : 28.0
+        let font = NSFont.systemFont(ofSize: size, weight: .black)
+        return NSString(string: tickerMessage.uppercased()).size(withAttributes: [.font: font]).width
+    }
+
+    private var marqueeGap: CGFloat { 56 }
+
+    private var marqueeSpeed: Double {
+        phase == .dueNow ? 240 : 150
+    }
+
     var body: some View {
-        ZStack(alignment: .trailing) {
-            Rectangle()
-                .fill(phase == .dueNow ? Color.red : Color.yellow)
-                .frame(height: stripHeight)
-                .shadow(radius: 12)
+        GeometryReader { geometry in
+            ZStack(alignment: .trailing) {
+                Rectangle()
+                    .fill(stripFill)
+                    .frame(height: stripHeight)
+                    .overlay(alignment: .top) {
+                        Rectangle()
+                            .fill(.white.opacity(0.18))
+                            .frame(height: 1)
+                    }
+                    .shadow(color: .black.opacity(0.25), radius: 18, y: 6)
 
-            Text(message.uppercased() + "  -  " + message.uppercased() + "  -  ")
-                .font(.system(size: phase == .dueNow ? 34 : 28, weight: .black, design: .rounded))
-                .foregroundStyle(phase == .dueNow ? .white : .black)
-                .lineLimit(1)
-                .offset(x: textOffset)
-                .onAppear {
-                    animate()
-                }
-                .onChange(of: phase) { _, _ in
-                    animate()
-                }
+                TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+                    let cycleWidth = max(labelWidth + marqueeGap, 1)
+                    let distance = (context.date.timeIntervalSince(tickerStart) * marqueeSpeed)
+                        .truncatingRemainder(dividingBy: cycleWidth)
 
-            if showControls {
-                HStack(spacing: 8) {
-                    Button("Snooze 5m") { onSnooze(5) }
-                    Button("Snooze 10m") { onSnooze(10) }
-                    Button("Dismiss") { onDismiss() }
-                        .keyboardShortcut(.return)
+                    HStack(spacing: marqueeGap) {
+                        marqueeLabel
+                        marqueeLabel
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                    .offset(x: geometry.size.width - distance)
                 }
-                .padding(10)
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .padding(.trailing, 18)
+                .clipped()
+
+                if showControls {
+                    HStack(spacing: 8) {
+                        Button("Snooze 5m") { onSnooze(5) }
+                        Button("Snooze 10m") { onSnooze(10) }
+                        Button("Dismiss") { onDismiss() }
+                            .keyboardShortcut(.return)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.black.opacity(0.75))
+                    .padding(10)
+                    .background(.regularMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .padding(.trailing, 18)
+                }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, minHeight: stripHeight, maxHeight: stripHeight)
         .contentShape(Rectangle())
         .onTapGesture {
             revealControls()
@@ -126,24 +167,38 @@ private struct MarqueeOverlayView: View {
         .onExitCommand {
             showControls = false
         }
+        .onDisappear {
+            hideControlsTask?.cancel()
+        }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { date in
             now = date
+        }
+        .onChange(of: reminder.id) { _, _ in
+            tickerStart = Date()
         }
     }
 
     private func revealControls() {
+        hideControlsTask?.cancel()
         showControls = true
 
-        Task { @MainActor in
+        hideControlsTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(8))
+            guard !Task.isCancelled else { return }
             showControls = false
         }
     }
 
-    private func animate() {
-        textOffset = 900
-        withAnimation(.linear(duration: phase == .dueNow ? 2.5 : 5).repeatForever(autoreverses: false)) {
-            textOffset = -900
-        }
+    private var marqueeLabel: some View {
+        Text(tickerMessage.uppercased())
+            .font(labelFont)
+            .monospacedDigit()
+            .foregroundStyle(textColor)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private func clockString(for totalSeconds: Int) -> String {
+        String(format: "%02d:%02d", totalSeconds / 60, totalSeconds % 60)
     }
 }

@@ -6,21 +6,36 @@ struct ReminderEditorView: View {
 
     let onCreate: (String, Date) -> Void
 
+    private var trimmedTitle: String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TextField("Reminder title", text: $title)
+            Text("Quick Add")
+                .font(.headline)
+
+            Text("Make the next important thing harder to ignore.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            TextField("What can't you miss?", text: $title)
                 .textFieldStyle(.roundedBorder)
 
-            DatePicker("Due", selection: $dueAt, displayedComponents: [.date, .hourAndMinute])
+            DatePicker("Alert me at", selection: $dueAt, displayedComponents: [.date, .hourAndMinute])
 
-            Button("Add Reminder") {
-                let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else { return }
-                onCreate(trimmed, dueAt)
+            Button {
+                guard !trimmedTitle.isEmpty else { return }
+                onCreate(trimmedTitle, dueAt)
                 title = ""
                 dueAt = Date().addingTimeInterval(60 * 5)
+            } label: {
+                Label("Create Reminder", systemImage: "plus.circle.fill")
+                    .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.borderedProminent)
             .keyboardShortcut(.return)
+            .disabled(trimmedTitle.isEmpty)
         }
     }
 }
