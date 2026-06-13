@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ReminderListView: View {
     let controller: AppController
+    @State private var selection: Reminder.ID?
 
     private var groupedReminders: [(String, [Reminder])] {
         [
@@ -14,7 +15,7 @@ struct ReminderListView: View {
 
     var body: some View {
         NavigationSplitView {
-            List {
+            List(selection: $selection) {
                 Section("Quick Add") {
                     ReminderEditorView { title, dueAt in
                         controller.createReminder(title: title, dueAt: dueAt)
@@ -47,13 +48,29 @@ struct ReminderListView: View {
                                     controller.delete(reminder)
                                 }
                             }
+                            .tag(reminder.id)
                         }
                     }
                 }
             }
             .listStyle(.sidebar)
         } detail: {
-            ContentUnavailableView("Select or create a reminder", systemImage: "bell.badge")
+            if let id = selection,
+               let reminder = controller.store.reminders.first(where: { $0.id == id }) {
+                ReminderEditView(
+                    reminder: reminder,
+                    onSave: { title, dueAt in
+                        controller.update(reminder, title: title, dueAt: dueAt)
+                    },
+                    onDelete: {
+                        controller.delete(reminder)
+                        selection = nil
+                    }
+                )
+                .id(reminder.id)
+            } else {
+                ContentUnavailableView("Select or create a reminder", systemImage: "bell.badge")
+            }
         }
     }
 }
