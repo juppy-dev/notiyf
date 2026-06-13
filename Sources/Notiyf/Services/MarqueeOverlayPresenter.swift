@@ -1,6 +1,13 @@
 import AppKit
 import SwiftUI
 
+/// Borderless overlay window that can become key so the SwiftUI marquee can
+/// receive clicks (tap-to-reveal, snooze, dismiss). `.nonactivatingPanel` lets
+/// it take key on click without activating Notiyf and stealing app focus.
+final class OverlayPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+}
+
 @MainActor
 final class MarqueeOverlayPresenter {
     private var window: NSWindow?
@@ -35,9 +42,9 @@ final class MarqueeOverlayPresenter {
         let frame = NSRect(x: screenFrame.minX, y: screenFrame.maxY - 120, width: screenFrame.width, height: 96)
 
         if window == nil {
-            let window = NSWindow(
+            let window = OverlayPanel(
                 contentRect: frame,
-                styleMask: [.borderless],
+                styleMask: [.borderless, .nonactivatingPanel],
                 backing: .buffered,
                 defer: false
             )
