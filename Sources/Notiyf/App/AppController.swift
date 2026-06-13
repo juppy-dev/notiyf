@@ -43,18 +43,22 @@ final class AppController {
 
     func update(_ reminder: Reminder, title: String, dueAt: Date) {
         try? store.update(id: reminder.id, title: title, dueAt: dueAt)
+        overlayPresenter.hideIfShowing(id: reminder.id)
     }
 
     func delete(_ reminder: Reminder) {
         try? store.delete(id: reminder.id)
+        overlayPresenter.hideIfShowing(id: reminder.id)
     }
 
     func dismiss(_ reminder: Reminder) {
         try? store.dismiss(id: reminder.id)
+        overlayPresenter.hideIfShowing(id: reminder.id)
     }
 
     func snooze(_ reminder: Reminder, minutes: Int) {
         try? store.snooze(id: reminder.id, minutes: minutes)
+        overlayPresenter.hideIfShowing(id: reminder.id)
     }
 
     func triggerTestMarquee() {

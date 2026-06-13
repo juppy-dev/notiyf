@@ -63,6 +63,15 @@ final class MarqueeOverlayPresenter {
         window?.orderFrontRegardless()
     }
 
+    /// Hide the overlay if it is currently showing the given reminder. Used when
+    /// that reminder is deleted, edited, snoozed, or dismissed from outside the
+    /// banner (e.g. the management window), keeping the overlay in sync with the
+    /// store instead of only responding to its own controls.
+    func hideIfShowing(id: Reminder.ID) {
+        guard reminder?.id == id else { return }
+        hide()
+    }
+
     func hide() {
         window?.orderOut(nil)
         reminder = nil
