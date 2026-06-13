@@ -59,4 +59,34 @@ final class ReminderTests: XCTestCase {
 
         XCTAssertEqual(result, first)
     }
+
+    func testMarqueeOverlayCopyKeepsCountdownOutOfScrollingMessage() {
+        let reminder = Reminder(title: "CEO Sync", dueAt: Date(timeIntervalSince1970: 1_000))
+        let copy = MarqueeOverlayCopy.make(reminder: reminder, now: Date(timeIntervalSince1970: 940))
+
+        XCTAssertEqual(copy.marqueeText, "CEO SYNC  •  STARTS SOON")
+        XCTAssertEqual(copy.statusText, "01:00")
+    }
+
+    func testMarqueeOverlayCopyShowsOverdueStatusSeparately() {
+        let reminder = Reminder(title: "CEO Sync", dueAt: Date(timeIntervalSince1970: 1_000))
+        let copy = MarqueeOverlayCopy.make(reminder: reminder, now: Date(timeIntervalSince1970: 1_135))
+
+        XCTAssertEqual(copy.marqueeText, "CEO SYNC  •  OVERDUE")
+        XCTAssertEqual(copy.statusText, "+02:15")
+    }
+
+    func testMarqueeTrackRepeatsEnoughTilesToCoverVisibleWidth() {
+        XCTAssertEqual(
+            MarqueeTrackLayout.tileCount(containerWidth: 1_280, tileWidth: 320),
+            6
+        )
+    }
+
+    func testMarqueeTrackKeepsAnExtraTileAvailableForWraparound() {
+        XCTAssertEqual(
+            MarqueeTrackLayout.tileCount(containerWidth: 120, tileWidth: 500),
+            3
+        )
+    }
 }
