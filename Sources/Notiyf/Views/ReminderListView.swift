@@ -5,12 +5,7 @@ struct ReminderListView: View {
     @State private var selection: Reminder.ID?
 
     private var groupedReminders: [(String, [Reminder])] {
-        [
-            ("Upcoming", controller.store.reminders.filter { $0.status == .scheduled }),
-            ("Snoozed", controller.store.reminders.filter { $0.status == .snoozed }),
-            ("Missed", controller.store.reminders.filter { $0.status == .missed }),
-            ("Dismissed", controller.store.reminders.filter { $0.status == .dismissed })
-        ]
+        ReminderGrouping.groups(from: controller.store.reminders)
     }
 
     var body: some View {
