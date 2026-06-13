@@ -41,6 +41,10 @@ final class AppController {
         _ = try? store.create(title: title, dueAt: dueAt)
     }
 
+    func update(_ reminder: Reminder, title: String, dueAt: Date) {
+        try? store.update(id: reminder.id, title: title, dueAt: dueAt)
+    }
+
     func delete(_ reminder: Reminder) {
         try? store.delete(id: reminder.id)
     }
