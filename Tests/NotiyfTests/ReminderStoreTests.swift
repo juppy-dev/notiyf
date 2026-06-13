@@ -41,6 +41,24 @@ final class ReminderStoreTests: XCTestCase {
         XCTAssertEqual(updated.snoozeCount, 1)
     }
 
+    func testUpdateRevivesReminderAndReschedules() throws {
+        let persistence = InMemoryReminderPersistence()
+        let store = try ReminderStore(persistence: persistence)
+        let reminder = try store.create(title: "Standup", dueAt: Date(timeIntervalSince1970: 2_000))
+        try store.dismiss(id: reminder.id)
+        let newDue = Date(timeIntervalSince1970: 5_000)
+        let now = Date(timeIntervalSince1970: 3_000)
+
+        try store.update(id: reminder.id, title: "CEO Sync", dueAt: newDue, now: now)
+
+        let updated = try XCTUnwrap(store.reminders.first)
+        XCTAssertEqual(updated.title, "CEO Sync")
+        XCTAssertEqual(updated.dueAt, newDue)
+        XCTAssertEqual(updated.status, .scheduled)
+        XCTAssertEqual(updated.updatedAt, now)
+        XCTAssertEqual(persistence.savedReminders, store.reminders)
+    }
+
     func testDismissMarksReminderDismissed() throws {
         let persistence = InMemoryReminderPersistence()
         let store = try ReminderStore(persistence: persistence)
