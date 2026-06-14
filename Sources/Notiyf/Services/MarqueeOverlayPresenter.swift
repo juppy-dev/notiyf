@@ -201,29 +201,16 @@ private struct MarqueeOverlayView: View {
                             .fill(.white.opacity(0.18))
                             .frame(height: 1)
                     }
-                    .shadow(color: .black.opacity(0.25), radius: 18, y: 6)
-
-                TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
-                    let cycleWidth = tileWidth
-                    let distance = (context.date.timeIntervalSince(tickerStart) * marqueeSpeed)
-                        .truncatingRemainder(dividingBy: cycleWidth)
-                    let tileCount = MarqueeTrackLayout.tileCount(
-                        containerWidth: geometry.size.width + 176,
-                        tileWidth: tileWidth
-                    )
-
-                    HStack(spacing: 0) {
-                        ForEach(0..<tileCount, id: \.self) { _ in
-                            marqueeLabel
-                        }
+                    // Marquee rides as an overlay on the band so its `.fixedSize`
+                    // track can't inflate the ZStack's width. (As a ZStack
+                    // sibling it forced the ZStack to the track's huge intrinsic
+                    // width, pushing the trailing status badge + controls
+                    // off-screen.) `.clipped()` hides the off-band overflow.
+                    .overlay(alignment: .leading) {
+                        marqueeTrack(width: geometry.size.width)
                     }
-                    .fixedSize(horizontal: true, vertical: false)
-                    .offset(x: -distance)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                .padding(.trailing, 176)
-                .clipped()
+                    .clipped()
+                    .shadow(color: .black.opacity(0.25), radius: 18, y: 6)
 
                 statusBadge
                     .padding(.trailing, showControls ? 214 : 18)
@@ -243,6 +230,7 @@ private struct MarqueeOverlayView: View {
                     .padding(.trailing, 18)
                 }
             }
+            .frame(width: geometry.size.width, height: stripHeight)
         }
         .frame(maxWidth: .infinity, minHeight: stripHeight, maxHeight: stripHeight)
         .contentShape(Rectangle())
@@ -261,6 +249,28 @@ private struct MarqueeOverlayView: View {
         .onChange(of: reminder.id) { _, _ in
             tickerStart = Date()
         }
+    }
+
+    private func marqueeTrack(width: CGFloat) -> some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+            let cycleWidth = tileWidth
+            let distance = (context.date.timeIntervalSince(tickerStart) * marqueeSpeed)
+                .truncatingRemainder(dividingBy: cycleWidth)
+            let tileCount = MarqueeTrackLayout.tileCount(
+                containerWidth: width + 176,
+                tileWidth: tileWidth
+            )
+
+            HStack(spacing: 0) {
+                ForEach(0..<tileCount, id: \.self) { _ in
+                    marqueeLabel
+                }
+            }
+            .fixedSize(horizontal: true, vertical: false)
+            .offset(x: -distance)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        }
+        .padding(.trailing, 176)
     }
 
     private func revealControls() {
